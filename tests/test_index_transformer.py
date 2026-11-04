@@ -152,9 +152,19 @@ def test_index_transform_default(tmpdir, monkeypatch):
             "http://purl.obolibrary.org/obo/NCBITaxon_6239",
             "Caenorhabditis elegans",
         ),
+        (
+            "https://www.ncbi.nlm.nih.gov/datasets/taxonomy/10090/",
+            "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+            "Mus musculus"
+        ),
+        (
+            "https://www.ncbi.nlm.nih.gov/datasets/taxonomy/00010090/",
+            "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+            "Mus musculus"
+        ),
     ],
 )
-def test_ncbitaxon_leading_zero_normalization(
+def test_ncbitaxon_normalization(
     tmpdir, taxon_id, expected_id, scientific_name
 ):
     """Validate that NCBITaxon IDs are normalized for compact and full URI inputs."""
