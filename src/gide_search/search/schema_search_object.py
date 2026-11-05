@@ -7,6 +7,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    ValidationError,
     ValidationInfo,
     field_validator,
     model_validator,
@@ -146,6 +147,35 @@ class BioSample(JsonLdNode):
     hasCellLine: list[DefinedTerm | str] | str | DefinedTerm = Field(
         default_factory=list
     )
+
+    # Hack to process (minorly) invalid gide-search objects
+    # requires updating some ssbd database entries, e.g. https://github.com/openssbd/gide-ro-crate/blob/main/project-ro-crate/database/242-Wazawa-CellDyn-ro-crate-metadata.json
+    # and some ssbd repo entries, e.g. https://github.com/openssbd/gide-ro-crate/blob/main/project-ro-crate/repository/ssbd-repos-000162-ro-crate-metadata.json
+    @field_validator("hasCellLine", mode="before")
+    @classmethod
+    def drop_invalid_defined_terms(cls, value):
+        items = value if isinstance(value, list) else [value]
+        valid_items = []
+
+        for item in items:
+            if isinstance(item, dict):
+                if not "@type" in item:
+                    item["@type"] = ["DefinedTerm"]
+                    logger.warning(
+                        "Missing @type in item under BioSample.hasCellLine (%s) - assuming DefinedTerm",
+                        item.get("@id"),
+                    )
+                try:
+                    DefinedTerm.model_validate(item)
+                except (ValidationError, TypeError) as error:
+                    logger.warning(
+                        "Dropping invalid DefinedTerm from BioSample.hasCellLine: %s",
+                        error,
+                    )
+                    continue
+            valid_items.append(item)
+
+        return valid_items
 
 
 class LabProtocol(JsonLdNode):
