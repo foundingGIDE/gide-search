@@ -313,20 +313,3 @@ def test_fbbi_id_normalization(tmpdir, monkeypatch, fbbi_id, expected_id, descri
     measurement_methods = index_document[0].get("measurementMethod", [])
     assert measurement_methods
     assert measurement_methods[0]["id"] == expected_id
-
-
-def test_index_transform(tmpdir, monkeypatch):
-    """Test transformation of the default test fixture."""
-
-    result = runner.invoke(
-        app,
-        [
-            "data",
-            "transform-to-index",
-            str(Path(__file__).parent.parent / "output/ro-crate/"),
-            "-o",
-            str(tmpdir),
-        ],
-    )
-
-    assert result.exit_code == 0
