@@ -38,6 +38,6 @@ class FrameTransformer(Transformer):
                     "@id": "http://schema.org/taxonomicRange",
                     "@container": "@set",
                 },
-                "@type": {"@container": "@set"}
+                "@type": {"@container": "@set"},
             },
         ]

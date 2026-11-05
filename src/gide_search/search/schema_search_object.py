@@ -110,11 +110,16 @@ class Taxon(JsonLdNode):
     @field_validator("id", mode="after")
     @classmethod
     def strip_leading_zeroes(cls, value: str) -> str:
-        if value.startswith("http://purl.obolibrary.org/obo/NCBITaxon_0"):
+        nih_dataset_prefix = "https://www.ncbi.nlm.nih.gov/datasets/taxonomy/"
+        obo_url_prefix = "http://purl.obolibrary.org/obo/NCBITaxon_"
+        if value.startswith(nih_dataset_prefix):
+            taxon_id = int(value.removeprefix(nih_dataset_prefix).strip("/"))
+            return f"{obo_url_prefix}{taxon_id}"
+        elif value.startswith(f"{obo_url_prefix}0"):
             digits = str(value).split("_")[1]
             normalised_digits = int(digits)
 
-            return f"http://purl.obolibrary.org/obo/NCBITaxon_{normalised_digits}"
+            return f"{obo_url_prefix}{normalised_digits}"
         else:
             return value
 
@@ -138,7 +143,9 @@ class BioSample(JsonLdNode):
     description: str
 
     taxonomicRange: list[Taxon] = Field(default_factory=list)
-    hasCellLine: list[DefinedTerm | str] | str = Field(default_factory=list)
+    hasCellLine: list[DefinedTerm | str] | str | DefinedTerm = Field(
+        default_factory=list
+    )
 
 
 class LabProtocol(JsonLdNode):
