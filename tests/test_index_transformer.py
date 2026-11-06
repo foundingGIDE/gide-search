@@ -5,6 +5,7 @@ import pytest
 from typer.testing import CliRunner
 
 from gide_search.cli import app
+from gide_search.search.schema_search_object import BioSample, DefinedTerm
 
 runner = CliRunner()
 
@@ -124,6 +125,39 @@ def test_index_transform_default(tmpdir, monkeypatch):
     assert output_index == expected_index
 
 
+def test_invalid_cell_line_defined_terms_are_dropped():
+    biosample = BioSample.model_validate(
+        {
+            "@id": "https://example.org/sample",
+            "@type": ["BioSample"],
+            "name": "Test sample",
+            "description": "Test sample description",
+            "hasCellLine": [
+                {"@id": "https://example.org/missing_type", "name": "Missing type"},
+                {
+                    "@id": "https://example.org/invalid-cell-line",
+                    "@type": "DefinedTerm",
+                },
+                {
+                    "@id": "https://example.org/valid-cell-line",
+                    "@type": ["DefinedTerm"],
+                    "name": "Valid cell line",
+                },
+                "Unspecified cell line",
+            ],
+        }
+    )
+
+    cell_lines = biosample.hasCellLine
+    assert isinstance(cell_lines, list)
+    assert len(cell_lines) == 3
+    assert isinstance(cell_lines[0], DefinedTerm)
+    assert cell_lines[0].name == "Missing type"
+    assert isinstance(cell_lines[1], DefinedTerm)
+    assert cell_lines[1].name == "Valid cell line"
+    assert cell_lines[2] == "Unspecified cell line"
+
+
 @pytest.mark.parametrize(
     "taxon_id,expected_id,scientific_name",
     [
@@ -155,18 +189,16 @@ def test_index_transform_default(tmpdir, monkeypatch):
         (
             "https://www.ncbi.nlm.nih.gov/datasets/taxonomy/10090/",
             "http://purl.obolibrary.org/obo/NCBITaxon_10090",
-            "Mus musculus"
+            "Mus musculus",
         ),
         (
             "https://www.ncbi.nlm.nih.gov/datasets/taxonomy/00010090/",
             "http://purl.obolibrary.org/obo/NCBITaxon_10090",
-            "Mus musculus"
+            "Mus musculus",
         ),
     ],
 )
-def test_ncbitaxon_normalization(
-    tmpdir, taxon_id, expected_id, scientific_name
-):
+def test_ncbitaxon_normalization(tmpdir, taxon_id, expected_id, scientific_name):
     """Validate that NCBITaxon IDs are normalized for compact and full URI inputs."""
     edge_cases = {
         "about": [
